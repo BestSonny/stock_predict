@@ -1,0 +1,6 @@
+data/*
+raw/*
+temp/*
+*.pyc
+*.csv
+*.xlsx
