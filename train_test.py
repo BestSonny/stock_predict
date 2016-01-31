@@ -21,29 +21,32 @@ def create_model():
     model.compile(loss="binary_crossentropy", optimizer="rmsprop", class_mode="binary")
     return model
 
-
-
 '''
 model_loaded = create_model()
-model_loaded.load_weights('temp/model_weights360.hdf5')
+model_loaded.load_weights('temp/model_weights767.hdf5')
 '''
-TEST = 1
+TEST = 0
 print "load data..."
-npzfile = np.load('temp/train_data.npz')
-print "split data..."
-(X_train,Y_train,X_test,Y_test) = prepare.train_test_split(npzfile)
+npzfile_train = np.load('mat/train_data_all.npz')
+(X_train,Y_train)= (npzfile_train['data'],npzfile_train['label'])
+npzfile_test = np.load('mat/test_data_all.npz')
+(X_test,Y_test) = (npzfile_test['data'],npzfile_test['label'])
+#(X_train,Y_train,X_test,Y_test) = prepare.train_test_split(npzfile)
 print " train data"
 print X_train.shape
 print Y_train.shape
 print " test data"
 print X_test.shape
-print X_test.shape
+print Y_test.shape
 print "create model..."
+
+
 model = create_model()
 pickle.dump(model, open('/tmp/model.pkl', 'wb'))
+model.load_weights('temp/model_weights828.hdf5')
 if TEST:
     print "load test"
-    model.load_weights('temp/model_weights324.hdf5')
+    model.load_weights('temp/model_weights828.hdf5')
 seed = 113
 np.random.seed(seed)
 np.random.shuffle(X_train)
@@ -54,9 +57,8 @@ np.random.shuffle(X_test)
 np.random.seed(seed)
 np.random.shuffle(Y_test)
 if TEST == 0:
-    checkpointer = ModelCheckpoint(filepath="temp/model_weights{epoch:02d}.hdf5", verbose=1, save_best_only=False)
-    model.fit(X_train, Y_train, batch_size=128, nb_epoch=2000,show_accuracy=True, verbose=2,callbacks=[checkpointer])
+    checkpointer = ModelCheckpoint(filepath="temp/_model_weights{epoch:02d}.hdf5", verbose=1, save_best_only=False)
+    model.fit(X_train, Y_train, batch_size=128, nb_epoch=100,show_accuracy=True, verbose=2,callbacks=[checkpointer])
 score = model.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
-#model.save_weights('/tmp/model_weights.hdf5')
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
