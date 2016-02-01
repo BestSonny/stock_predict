@@ -25,7 +25,7 @@ def create_model():
 model_loaded = create_model()
 model_loaded.load_weights('temp/model_weights767.hdf5')
 '''
-TEST = 0
+TEST = 1
 print "load data..."
 npzfile_train = np.load('mat/train_data_all.npz')
 (X_train,Y_train)= (npzfile_train['data'],npzfile_train['label'])
@@ -43,10 +43,10 @@ print "create model..."
 
 model = create_model()
 pickle.dump(model, open('/tmp/model.pkl', 'wb'))
-model.load_weights('temp/model_weights828.hdf5')
+#model.load_weights('temp/model_weights828.hdf5')
 if TEST:
     print "load test"
-    model.load_weights('temp/model_weights828.hdf5')
+    model.load_weights('temp/_model_weights13.hdf5')
 seed = 113
 np.random.seed(seed)
 np.random.shuffle(X_train)
