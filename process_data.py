@@ -75,9 +75,13 @@ def generate_data(glob_param,length=30):
     sample = 2000
     x_data = np.zeros((sample*LENGTH,30,13))
     y_data = np.zeros((sample*LENGTH,1))
+    x_data_test = np.zeros((sample*LENGTH,30,13))
     y_data_test = np.zeros((sample*LENGTH,1))
+    ratio = 0.9
+    #y_data_test = np.zeros((sample*LENGTH,1))
     print x_data.shape,y_data.shape
     index = 0
+    index_test = 0
     for filename in filelist:
         with open(filename,'rb') as f:
             spamreader = csv.reader(f, delimiter=' ', quotechar='|')
@@ -88,18 +92,22 @@ def generate_data(glob_param,length=30):
                 mylist.append(row)
             mydf = pd.DataFrame(mylist)
             myarray = np.array(mydf)
+            tt_index = int(ratio*min(myarray.shape[0] - length,sample))
             #,\1 if myarray[i+length,5] > myarray[i+length-1,5] else 0)
             tx_data = [myarray[i:i+length,2:15]\
-                for i in range(0,min(myarray.shape[0] - length,sample))]
+                for i in range(0,tt_index)]
             ty_data = [1 if myarray[i+length,5] > myarray[i+length-1,5] else 0\
-                for i in range(0,min(sample,myarray.shape[0] - length))]
+                for i in range(0,tt_index)]
+            tx_data_test = [myarray[i:i+length,2:15]\
+                for i in range(tt_index,min(sample,myarray.shape[0] - length))]
             ty_data_test = [1 if myarray[i+length-1,5] > myarray[i+length-2,5] else 0\
-                for i in range(0,min(sample,myarray.shape[0] - length))]
-            print len(tx_data),min(sample,myarray.shape[0] - length)
+                for i in range(tt_index,min(sample,myarray.shape[0] - length))]
             if len(tx_data)==0:
                 continue
             tx_data = np.dstack(tx_data)
             tx_data = np.rollaxis(tx_data,-1)
+            tx_data_test = np.dstack(tx_data_test)
+            tx_data_test = np.rollaxis(tx_data_test,-1)
             ty_data = np.dstack(ty_data)
             ty_data = np.rollaxis(ty_data,-1)
             ty_data = ty_data.reshape(ty_data.shape[0],1)
@@ -108,28 +116,22 @@ def generate_data(glob_param,length=30):
             ty_data_test = ty_data_test.reshape(ty_data_test.shape[0],1)
             x_data[index:index+tx_data.shape[0]] = tx_data
             y_data[index:index+ty_data.shape[0]] = ty_data
-            y_data_test[index:index+ty_data_test.shape[0]] = ty_data_test
+            x_data_test[index_test:index_test+tx_data_test.shape[0]] = tx_data_test
+            y_data_test[index_test:index_test+ty_data_test.shape[0]] = ty_data_test
             index = index+tx_data.shape[0]
+            index_test = index_test+tx_data_test.shape[0]
             #x_data = np.vstack((x_data,tx_data))
             #y_data = np.vstack((y_data,ty_data))
         count = count + 1
-        print count,index,LENGTH
+        print count,index,index_test,LENGTH
 
     print y_data[:index].shape
     print x_data[:index].shape
-    sti = 0
-    for i in range(y_data[:index].shape[0]):
-        sti += int(y_data[i,0] == y_data_test[i,0])
-    print sti*1.0 / y_data[:index].shape[0]
-    x = x_data[:index]
-    y = y_data[:index]
-    print x.shape
-    print y.shape
-    split = int(x.shape[0]*(1-0.1))
-    print x[:split].shape
+    print x_data_test[:index_test].shape
+    print y_data_test[:index_test].shape
 
-    np.savez('mat/train_data_all', data=x[:split], label=y[:split])
-    np.savez('mat/test_data_all', data=x[split:], label=y[split:])
+    np.savez('mat/train_data_all', data=x_data[:index], label=y_data[:index])
+    np.savez('mat/test_data_all', data=x_data_test[:index_test], label=y_data_test[:index_test])
 
     #npzfile = np.savez('mat/train_data_{}.npz'.format(post_fix),data=x_data, label=y_data)
     #print npzfile['data'].shape
