@@ -11,7 +11,11 @@ defaultencoding = 'utf-8'
 if sys.getdefaultencoding() != defaultencoding:
     reload(sys)
     sys.setdefaultencoding(defaultencoding)
+
 def process_row(valuelist):
+    """
+    process each row of stock information
+    """
     assert len(valuelist) == 16
     valuelist[6] = float(valuelist[6])*1e-7
     valuelist[9] = float(valuelist[9])*1e-9
@@ -19,7 +23,12 @@ def process_row(valuelist):
     valuelist[14] = float(valuelist[14])*1e-9
 
     return valuelist
+
 def _load_data(refer=True):
+    """
+    for process raw data into data folder. ture flag　to refer everyday overal stock information
+    """
+
     REFER = []
     if refer:
         with open('index.csv','rb') as f:
@@ -29,6 +38,8 @@ def _load_data(refer=True):
                 index = row.find(',') + 1
                 row =  row[index:]
                 REFER.append(row.split(','))
+
+    #scan all raw files
     filelist = os.listdir('./raw')
     filelist = sorted(filelist)
     count = 1
@@ -61,24 +72,28 @@ def _load_data(refer=True):
             item[-1] = item[-1].encode('utf-8')
         my_df = pd.DataFrame(items)
         my_df.to_csv(''.join(['data/',items[-1][-1],'/',items[-1][0],'.csv']), index=False, header=False)
+
 def generate_data(glob_param,length=30):
     """
     This just prepare data and splits data to training and testing parts
     """
     filelist = glob.glob(glob_param)
     post_fix = glob_param.split("/")[2]
-    #filelist = os.listdir('/'.join([root,folder]))
     x_data = None
     y_data = None
     LENGTH = len(filelist)
     count = 0
-    sample = 2000
+    sample = 1500
     x_data = np.zeros((sample*LENGTH,30,13))
     y_data = np.zeros((sample*LENGTH,1))
     x_data_test = np.zeros((sample*LENGTH,30,13))
     y_data_test = np.zeros((sample*LENGTH,1))
+
+    #ratio for train/test split
     ratio = 0.9
-    #y_data_test = np.zeros((sample*LENGTH,1))
+    #predict days after the lastest day of training data
+    lasting_day = 7
+
     print x_data.shape,y_data.shape
     index = 0
     index_test = 0
@@ -99,9 +114,9 @@ def generate_data(glob_param,length=30):
             ty_data = [1 if myarray[i+length,5] > myarray[i+length-1,5] else 0\
                 for i in range(0,tt_index)]
             tx_data_test = [myarray[i:i+length,2:15]\
-                for i in range(tt_index,min(sample,myarray.shape[0] - length))]
+                for i in range(tt_index,min(tt_index+lasting_day,myarray.shape[0] - length))]
             ty_data_test = [1 if myarray[i+length-1,5] > myarray[i+length-2,5] else 0\
-                for i in range(tt_index,min(sample,myarray.shape[0] - length))]
+                for i in range(tt_index,min(tt_index+lasting_day,myarray.shape[0] - length))]
             if len(tx_data)==0:
                 continue
             tx_data = np.dstack(tx_data)
@@ -120,24 +135,21 @@ def generate_data(glob_param,length=30):
             y_data_test[index_test:index_test+ty_data_test.shape[0]] = ty_data_test
             index = index+tx_data.shape[0]
             index_test = index_test+tx_data_test.shape[0]
-            #x_data = np.vstack((x_data,tx_data))
-            #y_data = np.vstack((y_data,ty_data))
         count = count + 1
-        print count,index,index_test,LENGTH
 
     print y_data[:index].shape
     print x_data[:index].shape
     print x_data_test[:index_test].shape
     print y_data_test[:index_test].shape
+    mean = np.mean(np.reshape(x_data[:index],(-1,13)), axis=0)
+    std  = np.std(np.reshape(x_data[:index],(-1,13)), axis=0)
+    print mean
+    print std
 
-    np.savez('mat/train_data_all', data=x_data[:index], label=y_data[:index])
-    np.savez('mat/test_data_all', data=x_data_test[:index_test], label=y_data_test[:index_test])
-
-    #npzfile = np.savez('mat/train_data_{}.npz'.format(post_fix),data=x_data, label=y_data)
-    #print npzfile['data'].shape
-    #print npzfile['label'].shape
+    #np.savez('mat/mean_std', mean=mean, std=std)
+    #np.savez('mat/train_data_all', data=x_data[:index], label=y_data[:index])
+    np.savez('mat/test_data_{}'.format(lasting_day), data=x_data_test[:index_test], label=y_data_test[:index_test])
     print 'end'
-    #return (x_data,y_data)
 
 def train_test_split(dataset,test_size=0.1):
 
@@ -146,5 +158,5 @@ def train_test_split(dataset,test_size=0.1):
     dataset['data'][index:],dataset['label'][index:])
 
 if __name__ == "__main__":
+    #_load_data(True)     #uncomment
     generate_data("./data/*/*.csv")
-#_load_data(True)
